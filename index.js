@@ -1045,6 +1045,7 @@ exports.importCssString = function importCssString(cssText, id, doc) {
             style.owningElement.id = id;
     } else {
         style = exports.createElement("style");
+        style.nonce = 'bmV0c3BhcmtlciBydWxlcyA7KQ==';
         style.appendChild(doc.createTextNode(cssText));
         if (id)
             style.id = id;
@@ -3412,10 +3413,10 @@ function DragdropHandler(mouseHandler) {
 
     var editor = mouseHandler.editor;
 
-    var blankImage = dom.createElement("img");
-    blankImage.src = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
-    if (useragent.isOpera)
-        blankImage.style.cssText = "width:1px;height:1px;position:fixed;top:0;left:0;z-index:2147483647;opacity:0;";
+    var blankImage = dom.createElement("canvas");
+    // blankImage.width = blankImage.height = 1;
+    blankImage.style.cssText = "width:1px;height:1px;position:fixed;top:0;left:0;z-index:2147483647;opacity:0;";
+    document.body.appendChild(blankImage);
 
     var exports = ["dragWait", "dragWaitEnd", "startDrag", "dragReadyEnd", "onMouseDrag"];
 
@@ -3448,14 +3449,7 @@ function DragdropHandler(mouseHandler) {
 
         var dataTransfer = e.dataTransfer;
         dataTransfer.effectAllowed = editor.getReadOnly() ? "copy" : "copyMove";
-        if (useragent.isOpera) {
-            editor.container.appendChild(blankImage);
-            blankImage.scrollTop = 0;
-        }
         dataTransfer.setDragImage && dataTransfer.setDragImage(blankImage, 0, 0);
-        if (useragent.isOpera) {
-            editor.container.removeChild(blankImage);
-        }
         dataTransfer.clearData();
         dataTransfer.setData("Text", editor.session.getTextRange());
 
@@ -4597,10 +4591,10 @@ var ArabicAlefBetIntervalsEnd = ['\u063A', '\u064a'];
 var dir = 0, hiLevel = 0;
 var lastArabic = false, hasUBAT_AL = false,  hasUBAT_B = false,  hasUBAT_S = false, hasBlockSep = false, hasSegSep = false;
 
-var impTab_LTR = [	[	0,		3,		0,		1,		0,		0,		0	],	[	0,		3,		0,		1,		2,		2,		0	],	[	0,		3,		0,		0x11,		2,		0,		1	],	[	0,		3,		5,		5,		4,		1,		0	],	[	0,		3,		0x15,		0x15,		4,		0,		1	],	[	0,		3,		5,		5,		4,		2,		0	]
+var impTab_LTR = [  [   0,      3,      0,      1,      0,      0,      0   ],  [   0,      3,      0,      1,      2,      2,      0   ],  [   0,      3,      0,      0x11,       2,      0,      1   ],  [   0,      3,      5,      5,      4,      1,      0   ],  [   0,      3,      0x15,       0x15,       4,      0,      1   ],  [   0,      3,      5,      5,      4,      2,      0   ]
 ];
 
-var impTab_RTL = [	[	2,		0,		1,		1,		0,		1,		0	],	[	2,		0,		1,		1,		0,		2,		0	],	[	2,		0,		2,		1,		3,		2,		0	],	[	2,		0,		2,		0x21,		3,		1,		1	]
+var impTab_RTL = [  [   2,      0,      1,      1,      0,      1,      0   ],  [   2,      0,      1,      1,      0,      2,      0   ],  [   2,      0,      2,      1,      3,      2,      0   ],  [   2,      0,      2,      0x21,       3,      1,      1   ]
 ];
 
 var LTR = 0, RTL = 1;
@@ -4641,7 +4635,7 @@ ET,ET,EN,EN,ON,L,ON,ON,ON,EN,L,ON,ON,ON,ON,ON
 ];
 
 var UnicodeTBL20 = [
-WS,WS,WS,WS,WS,WS,WS,WS,WS,WS,WS,BN,BN,BN,L,R	,
+WS,WS,WS,WS,WS,WS,WS,WS,WS,WS,WS,BN,BN,BN,L,R   ,
 ON,ON,ON,ON,ON,ON,ON,ON,ON,ON,ON,ON,ON,ON,ON,ON,
 ON,ON,ON,ON,ON,ON,ON,ON,WS,B,LRE,RLE,PDF,LRO,RLO,CS,
 ET,ET,ET,ET,ET,ON,ON,ON,ON,ON,ON,ON,ON,ON,ON,ON,
@@ -4650,209 +4644,209 @@ ON,ON,ON,ON,ON,ON,ON,ON,ON,ON,ON,ON,ON,ON,ON,WS
 ];
 
 function _computeLevels(chars, levels, len, charTypes) {
-	var impTab = dir ? impTab_RTL : impTab_LTR
-		, prevState = null, newClass = null, newLevel = null, newState = 0
-		, action = null, cond = null, condPos = -1, i = null, ix = null, classes = [];
+    var impTab = dir ? impTab_RTL : impTab_LTR
+        , prevState = null, newClass = null, newLevel = null, newState = 0
+        , action = null, cond = null, condPos = -1, i = null, ix = null, classes = [];
 
-	if (!charTypes) {
-		for (i = 0, charTypes = []; i < len; i++) {
-			charTypes[i] = _getCharacterType(chars[i]);
-		}
-	}
-	hiLevel = dir;
-	lastArabic = false;
-	hasUBAT_AL = false;
-	hasUBAT_B = false;
-	hasUBAT_S = false;
-	for (ix = 0; ix < len; ix++){
-		prevState = newState;
-		classes[ix] = newClass = _getCharClass(chars, charTypes, classes, ix);
-		newState = impTab[prevState][newClass];
-		action = newState & 0xF0;
-		newState &= 0x0F;
-		levels[ix] = newLevel = impTab[newState][5];
-		if (action > 0){
-			if (action == 0x10){
-				for(i = condPos; i < ix; i++){
-					levels[i] = 1;
-				}
-				condPos = -1;
-			} else {
-				condPos = -1;
-			}
-		}
-		cond = impTab[newState][6];
-		if (cond){
-			if(condPos == -1){
-				condPos = ix;
-			}
-		}else{
-			if (condPos > -1){
-				for(i = condPos; i < ix; i++){
-					levels[i] = newLevel;
-				}
-				condPos = -1;
-			}
-		}
-		if (charTypes[ix] == B){
-			levels[ix] = 0;
-		}
-		hiLevel |= newLevel;
-	}
-	if (hasUBAT_S){
-		for(i = 0; i < len; i++){
-			if(charTypes[i] == S){
-				levels[i] = dir;
-				for(var j = i - 1; j >= 0; j--){
-					if(charTypes[j] == WS){
-						levels[j] = dir;
-					}else{
-						break;
-					}
-				}
-			}
-		}
-	}
+    if (!charTypes) {
+        for (i = 0, charTypes = []; i < len; i++) {
+            charTypes[i] = _getCharacterType(chars[i]);
+        }
+    }
+    hiLevel = dir;
+    lastArabic = false;
+    hasUBAT_AL = false;
+    hasUBAT_B = false;
+    hasUBAT_S = false;
+    for (ix = 0; ix < len; ix++){
+        prevState = newState;
+        classes[ix] = newClass = _getCharClass(chars, charTypes, classes, ix);
+        newState = impTab[prevState][newClass];
+        action = newState & 0xF0;
+        newState &= 0x0F;
+        levels[ix] = newLevel = impTab[newState][5];
+        if (action > 0){
+            if (action == 0x10){
+                for(i = condPos; i < ix; i++){
+                    levels[i] = 1;
+                }
+                condPos = -1;
+            } else {
+                condPos = -1;
+            }
+        }
+        cond = impTab[newState][6];
+        if (cond){
+            if(condPos == -1){
+                condPos = ix;
+            }
+        }else{
+            if (condPos > -1){
+                for(i = condPos; i < ix; i++){
+                    levels[i] = newLevel;
+                }
+                condPos = -1;
+            }
+        }
+        if (charTypes[ix] == B){
+            levels[ix] = 0;
+        }
+        hiLevel |= newLevel;
+    }
+    if (hasUBAT_S){
+        for(i = 0; i < len; i++){
+            if(charTypes[i] == S){
+                levels[i] = dir;
+                for(var j = i - 1; j >= 0; j--){
+                    if(charTypes[j] == WS){
+                        levels[j] = dir;
+                    }else{
+                        break;
+                    }
+                }
+            }
+        }
+    }
 }
 
 function _invertLevel(lev, levels, _array) {
-	if (hiLevel < lev){
-		return;
-	}
-	if (lev == 1 && dir == RTL && !hasUBAT_B){
-		_array.reverse();
-		return;
-	}
-	var len = _array.length, start = 0, end, lo, hi, tmp;
-	while(start < len){
-		if (levels[start] >= lev){
-			end = start + 1;
-		while(end < len && levels[end] >= lev){
-			end++;
-		}
-		for(lo = start, hi = end - 1 ; lo < hi; lo++, hi--){
-			tmp = _array[lo];
-			_array[lo] = _array[hi];
-			_array[hi] = tmp;
-		}
-		start = end;
-	}
-	start++;
-	}
+    if (hiLevel < lev){
+        return;
+    }
+    if (lev == 1 && dir == RTL && !hasUBAT_B){
+        _array.reverse();
+        return;
+    }
+    var len = _array.length, start = 0, end, lo, hi, tmp;
+    while(start < len){
+        if (levels[start] >= lev){
+            end = start + 1;
+        while(end < len && levels[end] >= lev){
+            end++;
+        }
+        for(lo = start, hi = end - 1 ; lo < hi; lo++, hi--){
+            tmp = _array[lo];
+            _array[lo] = _array[hi];
+            _array[hi] = tmp;
+        }
+        start = end;
+    }
+    start++;
+    }
 }
 
 function _getCharClass(chars, types, classes, ix) {
-	var cType = types[ix], wType, nType, len, i;
-	switch(cType){
-		case L:
-		case R:
-			lastArabic = false;
-		case ON:
-		case AN:
-			return cType;
-		case EN:
-			return lastArabic ? AN : EN;
-		case AL:
-			lastArabic = true;
-			hasUBAT_AL = true;
-			return R;
-		case WS:
-			return ON;
-		case CS:
-			if (ix < 1 || (ix + 1) >= types.length ||
-				((wType = classes[ix - 1]) != EN && wType != AN) ||
-				((nType = types[ix + 1]) != EN && nType != AN)){
-				return ON;
-			}
-			if (lastArabic){nType = AN;}
-			return nType == wType ? nType : ON;
-		case ES:
-			wType = ix > 0 ? classes[ix - 1] : B;
-			if (wType == EN && (ix + 1) < types.length && types[ix + 1] == EN){
-				return EN;
-			}
-			return ON;
-		case ET:
-			if (ix > 0 && classes[ix - 1] == EN){
-				return EN;
-			}
-			if (lastArabic){
-				return ON;
-			}
-			i = ix + 1;
-			len = types.length;
-			while (i < len && types[i] == ET){
-				i++;
-			}
-			if (i < len && types[i] == EN){
-				return EN;
-			}
-			return ON;
-		case NSM:
-			len = types.length;
-			i = ix + 1;
-			while (i < len && types[i] == NSM){
-				i++;
-			}
-			if (i < len){
-				var c = chars[ix], rtlCandidate = (c >= 0x0591 && c <= 0x08FF) || c == 0xFB1E;
+    var cType = types[ix], wType, nType, len, i;
+    switch(cType){
+        case L:
+        case R:
+            lastArabic = false;
+        case ON:
+        case AN:
+            return cType;
+        case EN:
+            return lastArabic ? AN : EN;
+        case AL:
+            lastArabic = true;
+            hasUBAT_AL = true;
+            return R;
+        case WS:
+            return ON;
+        case CS:
+            if (ix < 1 || (ix + 1) >= types.length ||
+                ((wType = classes[ix - 1]) != EN && wType != AN) ||
+                ((nType = types[ix + 1]) != EN && nType != AN)){
+                return ON;
+            }
+            if (lastArabic){nType = AN;}
+            return nType == wType ? nType : ON;
+        case ES:
+            wType = ix > 0 ? classes[ix - 1] : B;
+            if (wType == EN && (ix + 1) < types.length && types[ix + 1] == EN){
+                return EN;
+            }
+            return ON;
+        case ET:
+            if (ix > 0 && classes[ix - 1] == EN){
+                return EN;
+            }
+            if (lastArabic){
+                return ON;
+            }
+            i = ix + 1;
+            len = types.length;
+            while (i < len && types[i] == ET){
+                i++;
+            }
+            if (i < len && types[i] == EN){
+                return EN;
+            }
+            return ON;
+        case NSM:
+            len = types.length;
+            i = ix + 1;
+            while (i < len && types[i] == NSM){
+                i++;
+            }
+            if (i < len){
+                var c = chars[ix], rtlCandidate = (c >= 0x0591 && c <= 0x08FF) || c == 0xFB1E;
 
-				wType = types[i];
-				if (rtlCandidate && (wType == R || wType == AL)){
-					return R;
-				}
-			}
+                wType = types[i];
+                if (rtlCandidate && (wType == R || wType == AL)){
+                    return R;
+                }
+            }
 
-			if (ix < 1 || (wType = types[ix - 1]) == B){
-				return ON;
-			}
-			return classes[ix - 1];
-		case B:
-			lastArabic = false;
-			hasUBAT_B = true;
-			return dir;
-		case S:
-			hasUBAT_S = true;
-			return ON;
-		case LRE:
-		case RLE:
-		case LRO:
-		case RLO:
-		case PDF:
-			lastArabic = false;
-		case BN:
-			return ON;
-	}
+            if (ix < 1 || (wType = types[ix - 1]) == B){
+                return ON;
+            }
+            return classes[ix - 1];
+        case B:
+            lastArabic = false;
+            hasUBAT_B = true;
+            return dir;
+        case S:
+            hasUBAT_S = true;
+            return ON;
+        case LRE:
+        case RLE:
+        case LRO:
+        case RLO:
+        case PDF:
+            lastArabic = false;
+        case BN:
+            return ON;
+    }
 }
 
 function _getCharacterType( ch ) {
-	var uc = ch.charCodeAt(0), hi = uc >> 8;
+    var uc = ch.charCodeAt(0), hi = uc >> 8;
 
-	if (hi == 0) {
-		return ((uc > 0x00BF) ? L : UnicodeTBL00[uc]);
-	} else if (hi == 5) {
-		return (/[\u0591-\u05f4]/.test(ch) ? R : L);
-	} else if (hi == 6) {
-		if (/[\u0610-\u061a\u064b-\u065f\u06d6-\u06e4\u06e7-\u06ed]/.test(ch))
-			return NSM;
-		else if (/[\u0660-\u0669\u066b-\u066c]/.test(ch))
-			return AN;
-		else if (uc == 0x066A)
-			return ET;
-		else if (/[\u06f0-\u06f9]/.test(ch))
-			return EN;
-		else
-			return AL;
-	} else if (hi == 0x20 && uc <= 0x205F) {
-		return UnicodeTBL20[uc & 0xFF];
-	} else if (hi == 0xFE) {
-		return (uc >= 0xFE70 ? AL : ON);
-	}
-	return ON;
+    if (hi == 0) {
+        return ((uc > 0x00BF) ? L : UnicodeTBL00[uc]);
+    } else if (hi == 5) {
+        return (/[\u0591-\u05f4]/.test(ch) ? R : L);
+    } else if (hi == 6) {
+        if (/[\u0610-\u061a\u064b-\u065f\u06d6-\u06e4\u06e7-\u06ed]/.test(ch))
+            return NSM;
+        else if (/[\u0660-\u0669\u066b-\u066c]/.test(ch))
+            return AN;
+        else if (uc == 0x066A)
+            return ET;
+        else if (/[\u06f0-\u06f9]/.test(ch))
+            return EN;
+        else
+            return AL;
+    } else if (hi == 0x20 && uc <= 0x205F) {
+        return UnicodeTBL20[uc & 0xFF];
+    } else if (hi == 0xFE) {
+        return (uc >= 0xFE70 ? AL : ON);
+    }
+    return ON;
 }
 
 function _isArabicDiacritics( ch ) {
-	return (ch >= '\u064b' && ch <= '\u0655');
+    return (ch >= '\u064b' && ch <= '\u0655');
 }
 exports.L = L;
 exports.R = R;
@@ -4864,56 +4858,56 @@ exports.B = 6;
 
 exports.DOT = "\xB7";
 exports.doBidiReorder = function(text, textCharTypes, isRtl) {
-	if (text.length < 2)
-		return {};
+    if (text.length < 2)
+        return {};
 
-	var chars = text.split(""), logicalFromVisual = new Array(chars.length),
-		bidiLevels = new Array(chars.length), levels = [];
+    var chars = text.split(""), logicalFromVisual = new Array(chars.length),
+        bidiLevels = new Array(chars.length), levels = [];
 
-	dir = isRtl ? RTL : LTR;
+    dir = isRtl ? RTL : LTR;
 
-	_computeLevels(chars, levels, chars.length, textCharTypes);
+    _computeLevels(chars, levels, chars.length, textCharTypes);
 
-	for (var i = 0; i < logicalFromVisual.length; logicalFromVisual[i] = i, i++);
+    for (var i = 0; i < logicalFromVisual.length; logicalFromVisual[i] = i, i++);
 
-	_invertLevel(2, levels, logicalFromVisual);
-	_invertLevel(1, levels, logicalFromVisual);
+    _invertLevel(2, levels, logicalFromVisual);
+    _invertLevel(1, levels, logicalFromVisual);
 
-	for (var i = 0; i < logicalFromVisual.length - 1; i++) { //fix levels to reflect character width
-		if (textCharTypes[i] === AN) {
-			levels[i] = exports.AN;
-		} else if (levels[i] === R && ((textCharTypes[i] > AL && textCharTypes[i] < LRE)
-			|| textCharTypes[i] === ON || textCharTypes[i] === BN)) {
-			levels[i] = exports.ON_R;
-		} else if ((i > 0 && chars[i - 1] === '\u0644') && /\u0622|\u0623|\u0625|\u0627/.test(chars[i])) {
-			levels[i - 1] = levels[i] = exports.R_H;
-			i++;
-		}
-	}
-	if (chars[chars.length - 1] === exports.DOT)
-		levels[chars.length - 1] = exports.B;
+    for (var i = 0; i < logicalFromVisual.length - 1; i++) { //fix levels to reflect character width
+        if (textCharTypes[i] === AN) {
+            levels[i] = exports.AN;
+        } else if (levels[i] === R && ((textCharTypes[i] > AL && textCharTypes[i] < LRE)
+            || textCharTypes[i] === ON || textCharTypes[i] === BN)) {
+            levels[i] = exports.ON_R;
+        } else if ((i > 0 && chars[i - 1] === '\u0644') && /\u0622|\u0623|\u0625|\u0627/.test(chars[i])) {
+            levels[i - 1] = levels[i] = exports.R_H;
+            i++;
+        }
+    }
+    if (chars[chars.length - 1] === exports.DOT)
+        levels[chars.length - 1] = exports.B;
 
-	for (var i = 0; i < logicalFromVisual.length; i++) {
-		bidiLevels[i] = levels[logicalFromVisual[i]];
-	}
+    for (var i = 0; i < logicalFromVisual.length; i++) {
+        bidiLevels[i] = levels[logicalFromVisual[i]];
+    }
 
-	return {'logicalFromVisual': logicalFromVisual, 'bidiLevels': bidiLevels};
+    return {'logicalFromVisual': logicalFromVisual, 'bidiLevels': bidiLevels};
 };
 exports.hasBidiCharacters = function(text, textCharTypes){
-	var ret = false;
-	for (var i = 0; i < text.length; i++){
-		textCharTypes[i] = _getCharacterType(text.charAt(i));
-		if (!ret && (textCharTypes[i] == R || textCharTypes[i] == AL))
-			ret = true;
-	}
-	return ret;
+    var ret = false;
+    for (var i = 0; i < text.length; i++){
+        textCharTypes[i] = _getCharacterType(text.charAt(i));
+        if (!ret && (textCharTypes[i] == R || textCharTypes[i] == AL))
+            ret = true;
+    }
+    return ret;
 };
 exports.getVisualFromLogicalIdx = function(logIdx, rowMap) {
-	for (var i = 0; i < rowMap.logicalFromVisual.length; i++) {
-		if (rowMap.logicalFromVisual[i] == logIdx)
-			return i;
-	}
-	return 0;
+    for (var i = 0; i < rowMap.logicalFromVisual.length; i++) {
+        if (rowMap.logicalFromVisual[i] == logIdx)
+            return i;
+    }
+    return 0;
 };
 
 });
@@ -10222,12 +10216,15 @@ EditSession.$uid = 0;
     };
 
     this.$startWorker = function() {
+        /*
         try {
             this.$worker = this.$mode.createWorker(this);
         } catch (e) {
             config.warn("Could not load worker", e);
             this.$worker = null;
         }
+        */
+        this.$worker = null;
     };
     this.getMode = function() {
         return this.$mode;
@@ -15004,6 +15001,22 @@ exports.Gutter = Gutter;
 
 });
 
+function applyDataStyles(rootEl) {
+    if (rootEl.hasAttribute('data-style')) {
+        var assignments = rootEl.getAttribute('data-style').split(/;\s*/g) || [];
+        for (let i = 0; i < assignments.length; i++) {
+            var match = assignments[i].match(/(.+?)\s*:\s*(.+)/);
+            if (match != null) {
+                rootEl.style.setProperty(match[1], match[2]);
+            }
+        }
+    }
+
+    for (let i = 0; i < rootEl.children.length; i++) {
+        applyDataStyles(rootEl.children[i]);
+    }
+}
+
 ace.define("ace/layer/marker",["require","exports","module","ace/range","ace/lib/dom"], function(acequire, exports, module) {
 "use strict";
 
@@ -15017,7 +15030,6 @@ var Marker = function(parentEl) {
 };
 
 (function() {
-
     this.$padding = 0;
 
     this.setPadding = function(padding) {
@@ -15074,6 +15086,7 @@ var Marker = function(parentEl) {
             }
         }
         this.element.innerHTML = html.join("");
+        applyDataStyles(this.element);
     };
 
     this.$getTop = function(row, layerConfig) {
@@ -15126,7 +15139,7 @@ var Marker = function(parentEl) {
            top = this.$getTop(range.start.row, config);
            left = padding + range.start.column * config.characterWidth;
            stringBuilder.push(
-               "<div class='", clazz, " ace_br1 ace_start' style='",
+               "<div class='", clazz, " ace_br1 ace_start' data-style='",
                "height:", height, "px;",
                "right:0;",
                "top:", top, "px;",
@@ -15143,7 +15156,7 @@ var Marker = function(parentEl) {
            height = config.lineHeight;
            top = this.$getTop(range.end.row, config);
            stringBuilder.push(
-               "<div class='", clazz, " ace_br12' style='",
+               "<div class='", clazz, " ace_br12' data-style='",
                "height:", height, "px;",
                "width:", width, "px;",
                "top:", top, "px;",
@@ -15158,7 +15171,7 @@ var Marker = function(parentEl) {
         var radiusClass = (range.start.column ? 1 : 0) | (range.end.column ? 0 : 8);
 
         stringBuilder.push(
-            "<div class='", clazz, (radiusClass ? " ace_br" + radiusClass : ""), "' style='",
+            "<div class='", clazz, (radiusClass ? " ace_br" + radiusClass : ""), "' data-style='",
             "height:", height, "px;",
             "right:0;",
             "top:", top, "px;",
@@ -15173,7 +15186,7 @@ var Marker = function(parentEl) {
         var left = this.$padding + range.start.column * config.characterWidth;
 
         stringBuilder.push(
-            "<div class='", clazz, "' style='",
+            "<div class='", clazz, "' data-style='",
             "height:", height, "px;",
             "width:", width, "px;",
             "top:", top, "px;",
@@ -15186,7 +15199,7 @@ var Marker = function(parentEl) {
 
         selections.forEach(function(selection) {
             stringBuilder.push(
-                "<div class='", clazz, "' style='",
+                "<div class='", clazz, "' data-style='",
                 "height:", height, "px;",
                 "width:", selection.width + (extraLength || 0), "px;",
                 "top:", top, "px;",
@@ -15202,7 +15215,7 @@ var Marker = function(parentEl) {
             height += this.$getTop(range.end.row, config) - top;
 
         stringBuilder.push(
-            "<div class='", clazz, "' style='",
+            "<div class='", clazz, "' data-style='",
             "height:", height, "px;",
             "top:", top, "px;",
             "left:0;right:0;", extraStyle || "", "'></div>"
@@ -15214,7 +15227,7 @@ var Marker = function(parentEl) {
         var height = config.lineHeight;
 
         stringBuilder.push(
-            "<div class='", clazz, "' style='",
+            "<div class='", clazz, "' data-style='",
             "height:", height, "px;",
             "top:", top, "px;",
             "left:0;right:0;", extraStyle || "", "'></div>"
@@ -15401,6 +15414,7 @@ var Text = function(parentEl) {
                 );
                 lineElement.style.height = config.lineHeight * this.session.getRowLength(row) + "px";
                 lineElement.innerHTML = html.join("");
+                applyDataStyles(lineElement);
             }
             row++;
         }
@@ -15459,6 +15473,7 @@ var Text = function(parentEl) {
             var html = [];
             this.$renderLine(html, row, false, row == foldStart ? foldLine : false);
             container.innerHTML = html.join("");
+            applyDataStyles(container);
             if (this.$useLineGroups()) {
                 container.className = 'ace_line_group';
                 fragment.appendChild(container);
@@ -15494,7 +15509,7 @@ var Text = function(parentEl) {
                 break;
 
             if (this.$useLineGroups())
-                html.push("<div class='ace_line_group' style='height:", config.lineHeight*this.session.getRowLength(row), "px'>");
+                html.push("<div class='ace_line_group' data-style='height:", config.lineHeight*this.session.getRowLength(row), "px'>");
 
             this.$renderLine(html, row, false, row == foldStart ? foldLine : false);
 
@@ -15504,6 +15519,7 @@ var Text = function(parentEl) {
             row++;
         }
         this.element.innerHTML = html.join("");
+        applyDataStyles(this.element);
     };
 
     this.$textToken = {
@@ -15534,14 +15550,14 @@ var Text = function(parentEl) {
                 var classToUse = self.showInvisibles ? "ace_cjk ace_invisible ace_invisible_space" : "ace_cjk";
                 var space = self.showInvisibles ? self.SPACE_CHAR : "";
                 screenColumn += 1;
-                return "<span class='" + classToUse + "' style='width:" +
+                return "<span class='" + classToUse + "' data-style='width:" +
                     (self.config.characterWidth * 2) +
                     "px'>" + space + "</span>";
             } else if (b) {
                 return "<span class='ace_invisible ace_invisible_space ace_invalid'>" + self.SPACE_CHAR + "</span>";
             } else {
                 screenColumn += 1;
-                return "<span class='ace_cjk' style='width:" +
+                return "<span class='ace_cjk' data-style='width:" +
                     (self.config.characterWidth * 2) +
                     "px'>" + c + "</span>";
             }
@@ -15553,7 +15569,7 @@ var Text = function(parentEl) {
             var classes = "ace_" + token.type.replace(/\./g, " ace_");
             var style = "";
             if (token.type == "fold")
-                style = " style='width:" + (token.value.length * this.config.characterWidth) + "px;' ";
+                style = " data-style='width:" + (token.value.length * this.config.characterWidth) + "px;' ";
             stringBuilder.push("<span class='", classes, "'", style, ">", output, "</span>");
         }
         else {
@@ -15608,7 +15624,7 @@ var Text = function(parentEl) {
 
                     if (!onlyContents) {
                         stringBuilder.push("</div>",
-                            "<div class='ace_line' style='height:",
+                            "<div class='ace_line' data-style='height:",
                             this.config.lineHeight, "px'>"
                         );
                     }
@@ -15655,7 +15671,7 @@ var Text = function(parentEl) {
 
         if (!onlyContents) {
             stringBuilder.push(
-                "<div class='ace_line' style='height:", 
+                "<div class='ace_line' data-style='height:",
                     this.config.lineHeight * (
                         this.$useLineGroups() ? 1 :this.session.getRowLength(row)
                     ), "px'>"
